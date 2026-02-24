@@ -58,7 +58,12 @@ jobs:
           mkdir -p packaged
           for d in artifacts/*; do
             for t in selfContained light; do
-              zip -r "packaged/${d##*/}-$t.zip" "$d/$t"
+              if [ -d "$d/$t" ]; then
+                zip -r "packaged/${d##*/}-$t.zip" "$d/$t"
+                echo "Packaged $d/$t → ${d##*/}-$t.zip"
+              else
+                echo "Warning: $d/$t does not exist!"
+              fi
             done
           done
 
