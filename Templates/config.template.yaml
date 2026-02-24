@@ -1,0 +1,43 @@
+role: "client"
+
+log:
+  level: "{{LogLevel}}"
+
+socks5:
+  - listen: "127.0.0.1:{{SocksPort}}"
+    username: ""
+    password: ""
+
+network:
+  interface: "{{InterfaceName}}"
+  {{GuidBlock}}
+
+  ipv4:
+    addr: "{{IP}}:0"
+    router_mac: "{{RouterMac}}"
+  
+  tcp:
+    local_flag: ["PA"]
+    remote_flag: ["PA"]
+  
+  pcap:
+    sockbuf: 4194304
+
+server:
+  addr: "{{ServerIP}}:{{ServerPort}}"
+
+transport:
+  protocol: "kcp"
+  conn: 1
+
+  kcp:
+    mode: "fast"
+    mtu: 1200
+    rcvwnd: 512
+    sndwnd: 512
+
+    block: "aes"
+    key: "{{Secret}}"
+
+    smuxbuf: 4194304
+    streambuf: 2097152
