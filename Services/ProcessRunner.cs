@@ -89,13 +89,14 @@ public class ProcessRunner
 
             _process.WaitForExit();
 
+            int exitCode = _process.ExitCode;
+
             _process.Dispose();
             _process = null;
 
             if (_userStopped)
             {
                 Console.WriteLine("Stopped by user.");
-                Console.WriteLine(_process);
                 break;
             }
 
@@ -107,7 +108,7 @@ public class ProcessRunner
                 break;
             }
 
-            Console.WriteLine($"Paqet crashed (code {_process.ExitCode}). Restarting in 3 seconds... ({restartCount}/{maxRestarts})");
+            Console.WriteLine($"Paqet crashed (code {exitCode}). Restarting in 3 seconds... ({restartCount}/{maxRestarts})");
             Thread.Sleep(3000);
         }
 
