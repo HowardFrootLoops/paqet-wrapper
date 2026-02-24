@@ -53,32 +53,25 @@ jobs:
         with:
           path: artifacts
 
-      - name: Package all builds
+      - name: Package all builds separately
         run: |
           mkdir -p packaged
           for d in artifacts/*; do
             for t in selfContained light; do
-              if [ -d "$d/$t" ]; then
-                zip -r "packaged/${d##*/}-$t.zip" "$d/$t"
-                echo "Packaged $d/$t → ${d##*/}-$t.zip"
+              # Make sure folder exists
+              folder="$d/$t"
+              if [ -d "$folder" ]; then
+                zip -r "packaged/${d##*/}-$t.zip" "$folder"
+                echo "Packaged $folder → ${d##*/}-$t.zip"
               else
-                echo "Warning: $d/$t does not exist!"
+                echo "Skipping missing folder $folder"
               fi
             done
           done
 
-      - name: Create GitHub Release
-        uses: actions/create-release@v1
-        id: create_release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release & upload assets
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-
-      - name: Upload Release Assets
-        run: gh release upload ${{ github.ref_name }} packaged/*.zip --clobber
+          files: packaged/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
