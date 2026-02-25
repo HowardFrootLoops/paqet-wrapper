@@ -38,7 +38,6 @@ jobs:
           dotnet publish -c Release -r ${{ matrix.runtime }} \
           --self-contained true \
           -p:PublishSingleFile=true \
-          -p:EnableCompressionInSingleFile=true \
           -p:DebugType=None \
           -p:DebugSymbols=false \
           -o publish/selfContained
