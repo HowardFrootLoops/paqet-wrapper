@@ -34,6 +34,7 @@ jobs:
 
       # ---------------- SELF CONTAINED (optimized) ----------------
       - name: Publish SelfContained
+        shell: bash
         run: |
           dotnet publish -c Release -r ${{ matrix.runtime }} \
           --self-contained true \
@@ -44,6 +45,7 @@ jobs:
 
       # ---------------- LIGHT (REAL LIGHT) ----------------
       - name: Publish Light
+        shell: bash
         run: |
           dotnet publish -c Release \
           -r ${{ matrix.runtime }} \
