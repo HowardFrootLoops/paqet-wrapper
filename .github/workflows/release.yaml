@@ -36,7 +36,7 @@ jobs:
         run: dotnet publish -c Release -r ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true -o publish/selfContained
 
       - name: Publish Light
-        run: dotnet publish -c Release -r ${{ matrix.runtime }} --self-contained false -o publish/light
+        run: dotnet publish -c Release -r ${{ matrix.runtime }} --self-contained false -p:PublishSingleFile=true -o publish/light
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -53,16 +53,18 @@ jobs:
         with:
           path: artifacts
 
-      - name: Package all builds cleanly
+      - name: Package all builds separately
         run: |
           mkdir -p packaged
           for d in artifacts/*; do
             for t in selfContained light; do
+              # Make sure folder exists
               folder="$d/$t"
               if [ -d "$folder" ]; then
-                cd "$folder"
-                zip -r "../../packaged/${d##*/}-$t.zip" ./*
-                cd - >/dev/null
+                (
+                  cd "$folder"
+                  zip -r "../../../packaged/${d##*/}-$t.zip" .
+                )
                 echo "Packaged $folder → ${d##*/}-$t.zip"
               else
                 echo "Skipping missing folder $folder"
@@ -70,7 +72,7 @@ jobs:
             done
           done
 
-      - name: Upload only zips to GitHub Release
+      - name: Create GitHub Release & upload assets
         uses: softprops/action-gh-release@v2
         with:
           files: packaged/*.zip
