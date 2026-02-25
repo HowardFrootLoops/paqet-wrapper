@@ -53,15 +53,16 @@ jobs:
         with:
           path: artifacts
 
-      - name: Package all builds separately
+      - name: Package all builds cleanly
         run: |
           mkdir -p packaged
           for d in artifacts/*; do
             for t in selfContained light; do
-              # Make sure folder exists
               folder="$d/$t"
               if [ -d "$folder" ]; then
-                zip -r "packaged/${d##*/}-$t.zip" "$folder"
+                cd "$folder"
+                zip -r "../../packaged/${d##*/}-$t.zip" ./*
+                cd - >/dev/null
                 echo "Packaged $folder → ${d##*/}-$t.zip"
               else
                 echo "Skipping missing folder $folder"
@@ -69,7 +70,7 @@ jobs:
             done
           done
 
-      - name: Create GitHub Release & upload assets
+      - name: Upload only zips to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: packaged/*.zip
