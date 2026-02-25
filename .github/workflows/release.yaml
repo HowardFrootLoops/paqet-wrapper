@@ -32,11 +32,27 @@ jobs:
       - name: Restore
         run: dotnet restore
 
+      # ---------------- SELF CONTAINED (optimized) ----------------
       - name: Publish SelfContained
-        run: dotnet publish -c Release -r ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true -o publish/selfContained
+        run: |
+          dotnet publish -c Release -r ${{ matrix.runtime }} \
+          --self-contained true \
+          -p:PublishSingleFile=true \
+          -p:PublishTrimmed=true \
+          -p:EnableCompressionInSingleFile=true \
+          -p:DebugType=None \
+          -p:DebugSymbols=false \
+          -o publish/selfContained
 
+      # ---------------- LIGHT (REAL LIGHT) ----------------
       - name: Publish Light
-        run: dotnet publish -c Release -r ${{ matrix.runtime }} --self-contained false -p:PublishSingleFile=true -o publish/light
+        run: |
+          dotnet publish -c Release \
+          -r ${{ matrix.runtime }} \
+          --self-contained false \
+          -p:DebugType=None \
+          -p:DebugSymbols=false \
+          -o publish/light
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -58,16 +74,20 @@ jobs:
           mkdir -p packaged
           for d in artifacts/*; do
             for t in selfContained light; do
-              # Make sure folder exists
               folder="$d/$t"
               if [ -d "$folder" ]; then
+
+                name="paqetWrapper-${d##*/}"
+                if [ "$t" = "selfContained" ]; then
+                  name="${name}-selfContained"
+                fi
+
                 (
                   cd "$folder"
-                  zip -r "../../../packaged/${d##*/}-$t.zip" .
+                  zip -r "../../../packaged/${name}.zip" .
                 )
-                echo "Packaged $folder → ${d##*/}-$t.zip"
-              else
-                echo "Skipping missing folder $folder"
+
+                echo "Packaged → ${name}.zip"
               fi
             done
           done
