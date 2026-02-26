@@ -87,14 +87,14 @@ jobs:
                     cd "$folder"
                     zip -r "../../../packaged/${name}.zip" .
                   )
+                  echo "Packaged → ${name}.zip"
                 else
                   (
                     cd "$folder"
                     tar -czf "../../../packaged/${name}.tar.gz" .
                   )
+                  echo "Packaged → ${name}.tar.gz"
                 fi
-
-                echo "Packaged → ${name}.zip"
               fi
             done
           done
