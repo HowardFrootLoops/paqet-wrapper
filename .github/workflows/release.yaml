@@ -91,6 +91,8 @@ jobs:
                 else
                   (
                     cd "$folder"
+                    find . -type f -exec chmod 644 {} \;
+                    chmod 755 paqetWrapper
                     tar -czf "../../../packaged/${name}.tar.gz" .
                   )
                   echo "Packaged → ${name}.tar.gz"
