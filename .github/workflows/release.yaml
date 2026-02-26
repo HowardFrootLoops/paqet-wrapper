@@ -74,7 +74,7 @@ jobs:
                 (cd "$folder" && zip -r "../../packaged/${name}.zip" .)
                 echo "Created ${name}.zip"
               else
-                chmod +x "$folder/MyWrapperExecutable"
+                chmod +x "$folder/paqetWrapper"
                 (cd "$folder" && tar -czf "../../packaged/${name}.tar.gz" .)
                 echo "Created ${name}.tar.gz"
               fi
