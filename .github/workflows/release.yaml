@@ -9,7 +9,6 @@ on:
       - 'v*'
 
 jobs:
-  # ---------------- BUILD MATRIX ----------------
   build:
     strategy:
       matrix:
@@ -20,9 +19,8 @@ jobs:
             runtime: linux-x64
           - os: macos-latest
             runtime: osx-x64
+
     runs-on: ${{ matrix.os }}
-    outputs:
-      packaged-folder: ${{ steps.package.outputs.packaged-path }}
 
     steps:
       - uses: actions/checkout@v4
@@ -34,74 +32,76 @@ jobs:
       - name: Restore
         run: dotnet restore
 
-      # ---------- SELF CONTAINED ----------
       - name: Publish SelfContained
         shell: bash
         run: |
           dotnet publish -c Release -r ${{ matrix.runtime }} \
-            --self-contained true \
-            -p:PublishSingleFile=true \
-            -p:DebugType=None \
-            -p:DebugSymbols=false \
-            -o publish/selfContained
+          --self-contained true \
+          -p:PublishSingleFile=true \
+          -p:DebugType=None \
+          -p:DebugSymbols=false \
+          -o publish/selfContained
 
-      # ---------- LIGHT ----------
       - name: Publish Light
         shell: bash
         run: |
-          dotnet publish -c Release -r ${{ matrix.runtime }} \
-            --self-contained false \
-            -p:DebugType=None \
-            -p:DebugSymbols=false \
-            -o publish/light
+          dotnet publish -c Release \
+          -r ${{ matrix.runtime }} \
+          --self-contained false \
+          -p:DebugType=None \
+          -p:DebugSymbols=false \
+          -o publish/light
 
-      # ---------- PACKAGE ----------
-      - name: Package
-        id: package
-        shell: bash
-        run: |
-          set -e
-          mkdir -p packaged
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.runtime }}
+          path: publish
 
-          for t in selfContained light; do
-            folder="publish/$t"
-
-            if [ -d "$folder" ]; then
-              name="paqetWrapper-${{ matrix.runtime }}"
-              if [ "$t" = "selfContained" ]; then
-                name="${name}-selfContained"
-              fi
-
-              if [ "${{ matrix.runtime }}" = "win-x64" ]; then
-                (cd "$folder" && zip -r "../../packaged/${name}.zip" .)
-                echo "Created ${name}.zip"
-              else
-                chmod +x "$folder/paqetWrapper"
-                (cd "$folder" && tar -czf "../../packaged/${name}.tar.gz" .)
-                echo "Created ${name}.tar.gz"
-              fi
-            fi
-          done
-
-          echo "packaged-path=$(pwd)/packaged" >> $GITHUB_OUTPUT
-
-  # ---------------- RELEASE ----------------
-  release:
+  package-release:
     needs: build
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Copy packaged artifacts
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Package all builds separately
         run: |
           mkdir -p packaged
-          cp -r ${{ needs.build.outputs.packaged-folder }}/* packaged/
+          for d in artifacts/*; do
+            runtime="${d##*/}"
 
-      # ---------- CREATE RELEASE ----------
-      - name: Create GitHub Release
+            for t in selfContained light; do
+              folder="$d/$t"
+              if [ -d "$folder" ]; then
+
+                name="paqetWrapper-${runtime}"
+                if [ "$t" = "selfContained" ]; then
+                  name="${name}-selfContained"
+                fi
+
+                if [[ "$runtime" == "win-x64" ]]; then
+                  (
+                    cd "$folder"
+                    zip -r "../../../packaged/${name}.zip" .
+                  )
+                else
+                  (
+                    cd "$folder"
+                    tar -czf "../../../packaged/${name}.tar.gz" .
+                  )
+                fi
+              fi
+              echo "Packaged → ${name}.tar.gz"
+            done
+          done
+
+      - name: Create GitHub Release & upload assets
         uses: softprops/action-gh-release@v2
         with:
-          files: packaged/*
-          overwrite_files: true
+          files: packaged/*.zip
+          replace_existing_artifacts: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
