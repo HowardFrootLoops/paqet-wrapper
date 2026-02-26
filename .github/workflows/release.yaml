@@ -32,77 +32,59 @@ jobs:
       - name: Restore
         run: dotnet restore
 
+      # ---------- SELF CONTAINED ----------
       - name: Publish SelfContained
-        shell: bash
         run: |
           dotnet publish -c Release -r ${{ matrix.runtime }} \
-          --self-contained true \
-          -p:PublishSingleFile=true \
-          -p:DebugType=None \
-          -p:DebugSymbols=false \
-          -o publish/selfContained
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:DebugType=None \
+            -p:DebugSymbols=false \
+            -o publish/selfContained
 
+      # ---------- LIGHT ----------
       - name: Publish Light
+        run: |
+          dotnet publish -c Release -r ${{ matrix.runtime }} \
+            --self-contained false \
+            -p:DebugType=None \
+            -p:DebugSymbols=false \
+            -o publish/light
+
+      # ---------- PACKAGE ----------
+      - name: Package
         shell: bash
         run: |
-          dotnet publish -c Release \
-          -r ${{ matrix.runtime }} \
-          --self-contained false \
-          -p:DebugType=None \
-          -p:DebugSymbols=false \
-          -o publish/light
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.runtime }}
-          path: publish
-
-  package-release:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Package all builds separately
-        run: |
+          set -e
           mkdir -p packaged
-          for d in artifacts/*; do
-            runtime="${d##*/}"
 
-            for t in selfContained light; do
-              folder="$d/$t"
-              if [ -d "$folder" ]; then
+          for t in selfContained light; do
+            folder="publish/$t"
 
-                name="paqetWrapper-${runtime}"
-                if [ "$t" = "selfContained" ]; then
-                  name="${name}-selfContained"
-                fi
+            if [ -d "$folder" ]; then
 
-                if [[ "$runtime" == "win-x64" ]]; then
-                  (
-                    cd "$folder"
-                    zip -r "../../../packaged/${name}.zip" .
-                  )
-                  echo "Packaged → ${name}.zip"
-                else
-                  (
-                    cd "$folder"
-                    tar -czf "../../../packaged/${name}.tar.gz" .
-                  )
-                  echo "Packaged → ${name}.tar.gz"
-                fi
+              name="paqetWrapper-${{ matrix.runtime }}"
+              if [ "$t" = "selfContained" ]; then
+                name="${name}-selfContained"
               fi
-            done
+
+              if [ "${{ matrix.runtime }}" = "win-x64" ]; then
+                (cd "$folder" && zip -r "../../packaged/${name}.zip" .)
+                echo "Created ${name}.zip"
+              else
+                chmod +x "$folder/paqetWrapper"
+                (cd "$folder" && tar -czf "../../packaged/${name}.tar.gz" .)
+                echo "Created ${name}.tar.gz"
+              fi
+
+            fi
           done
 
-      - name: Create GitHub Release & upload assets
+      # ---------- RELEASE ----------
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: packaged/*.zip
+          files: packaged/*
           replace_existing_artifacts: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
