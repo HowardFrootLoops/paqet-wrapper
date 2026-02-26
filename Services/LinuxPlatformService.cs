@@ -8,7 +8,7 @@ public class LinuxPlatformService : IPlatformService
 
     public void EnsurePcapInstalled()
     {
-        var process = new Process
+        /*var process = new Process
         {
             StartInfo = new ProcessStartInfo
             {
@@ -27,7 +27,7 @@ public class LinuxPlatformService : IPlatformService
         if (string.IsNullOrEmpty(output) || !output.Contains("libpcap"))
         {
             throw new Exception("libpcap is not installed. Please install libpcap.");
-        }
+        }*/
     }
 
     public string GetRouterMac(string gatewayIp)

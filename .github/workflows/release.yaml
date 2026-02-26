@@ -32,7 +32,6 @@ jobs:
       - name: Restore
         run: dotnet restore
 
-      # ---------------- SELF CONTAINED (optimized) ----------------
       - name: Publish SelfContained
         shell: bash
         run: |
@@ -43,7 +42,6 @@ jobs:
           -p:DebugSymbols=false \
           -o publish/selfContained
 
-      # ---------------- LIGHT (REAL LIGHT) ----------------
       - name: Publish Light
         shell: bash
         run: |
@@ -73,19 +71,28 @@ jobs:
         run: |
           mkdir -p packaged
           for d in artifacts/*; do
+            runtime="${d##*/}"
+
             for t in selfContained light; do
               folder="$d/$t"
               if [ -d "$folder" ]; then
 
-                name="paqetWrapper-${d##*/}"
+                name="paqetWrapper-${runtime}"
                 if [ "$t" = "selfContained" ]; then
                   name="${name}-selfContained"
                 fi
 
-                (
-                  cd "$folder"
-                  zip -r "../../../packaged/${name}.zip" .
-                )
+                if [[ "$runtime" == "win-x64" ]]; then
+                  (
+                    cd "$folder"
+                    zip -r "../../../packaged/${name}.zip" .
+                  )
+                else
+                  (
+                    cd "$folder"
+                    tar -czf "../../../packaged/${name}.tar.gz" .
+                  )
+                fi
 
                 echo "Packaged → ${name}.zip"
               fi
