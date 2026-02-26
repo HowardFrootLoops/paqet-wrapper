@@ -36,6 +36,7 @@ jobs:
 
       # ---------- SELF CONTAINED ----------
       - name: Publish SelfContained
+        shell: bash
         run: |
           dotnet publish -c Release -r ${{ matrix.runtime }} \
             --self-contained true \
@@ -46,6 +47,7 @@ jobs:
 
       # ---------- LIGHT ----------
       - name: Publish Light
+        shell: bash
         run: |
           dotnet publish -c Release -r ${{ matrix.runtime }} \
             --self-contained false \
