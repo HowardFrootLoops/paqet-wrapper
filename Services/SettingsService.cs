@@ -1,5 +1,6 @@
 using System.Text.Json;
 using PaqetWrapper.Models;
+using System.Diagnostics;
 
 namespace PaqetWrapper.Services;
 
@@ -53,17 +54,53 @@ public class SettingsService
             ? existing.LogLevel ?? "info"
             : input.ToLower();
 
-        Console.Write("Change Secret? (y/N): ");
+        if (existing.Secret == "") {
+            Console.Write("Have Secret code? (y/N): ");
+        } else {
+            Console.Write("Change Secret code? (y/N): ");
+        }
         input = Console.ReadLine();
         if (input?.ToLower() == "y")
         {
-            Console.Write("Enter new secret: ");
+            Console.Write("Enter secret code (or leave empty to generate a new one): ");
             existing.Secret = Console.ReadLine() ?? "";
+        }
+        if (existing.Secret == "") {
+            Console.Write("\nGenerating secret code: ");
+            existing.Secret = GenerateSecret();
+            Console.Write($"\n{existing.Secret}\n");
         }
 
         Save(existing);
 
         return existing;
+    }
+
+    public string GenerateSecret() {
+        var platform = PlatformFactory.GetPlatform();
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = platform.GetBinaryName(),
+            Arguments = "secret",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+
+        using var process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Failed to start process");
+
+        string output = process.StandardOutput.ReadToEnd();
+        string error = process.StandardError.ReadToEnd();
+
+        process.WaitForExit();
+
+        if (process.ExitCode != 0)
+        {
+            throw new Exception($"paqet failed: {error}");
+        }
+
+        return output.Trim();
     }
 
     public void Show(UserSettings settings)
